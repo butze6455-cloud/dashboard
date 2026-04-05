@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes } = require("discord.js");
 const { connectDB, getDB } = require("./database");
 
@@ -25,13 +23,19 @@ const commands = [
                 ))
 ].map(cmd => cmd.toJSON());
 
+// REGISTER COMMANDS
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
-    await rest.put(
-        Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-        { body: commands }
-    );
+    try {
+        await rest.put(
+            Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+            { body: commands }
+        );
+        console.log("✅ Commands geladen");
+    } catch (err) {
+        console.error(err);
+    }
 })();
 
 // INTERACTION
@@ -51,9 +55,14 @@ client.on("interactionCreate", async (interaction) => {
 
         await db.collection("stock").deleteOne({ _id: item._id });
 
-        await interaction.user.send(`📦 ${type}:\n${item.value}`);
-        await interaction.reply({ content: "📩 Check DM", ephemeral: true });
+        try {
+            await interaction.user.send(`📦 ${type}:\n${item.value}`);
+            await interaction.reply({ content: "📩 Check DM", ephemeral: true });
+        } catch {
+            await interaction.reply({ content: "❌ DM nicht möglich", ephemeral: true });
+        }
     }
 });
 
+// LOGIN
 client.login(process.env.TOKEN);
