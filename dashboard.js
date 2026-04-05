@@ -1,5 +1,3 @@
-require("dotenv").config();
-
 const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
@@ -14,28 +12,35 @@ const upload = multer({ dest: "uploads/" });
 async function startServer() {
     await connectDB();
 
+    // HOME
     app.get("/", async (req, res) => {
         const db = getDB();
 
-        const tokenCount = await db.collection("stock").countDocuments({ type: "token" });
-        const cookieCount = await db.collection("stock").countDocuments({ type: "cookie" });
+        const tokens = await db.collection("stock").countDocuments({ type: "token" });
+        const cookies = await db.collection("stock").countDocuments({ type: "cookie" });
 
         res.send(`
-        <h1>🖤 VaultAlts Dashboard</h1>
-        <p>Token: ${tokenCount}</p>
-        <p>Cookie: ${cookieCount}</p>
+        <h1 style="color:white;background:black;padding:10px;">🖤 VaultAlts Dashboard</h1>
 
-        <form method="POST" action="/upload" enctype="multipart/form-data">
-            <select name="type">
-                <option value="token">Token</option>
-                <option value="cookie">Cookie</option>
-            </select>
-            <input type="file" name="files" multiple>
-            <button>Upload</button>
-        </form>
+        <div style="background:#111;color:white;padding:20px;">
+            <h2>Stock</h2>
+            <p>Token: ${tokens}</p>
+            <p>Cookie: ${cookies}</p>
+
+            <h2>Upload</h2>
+            <form method="POST" action="/upload" enctype="multipart/form-data">
+                <select name="type">
+                    <option value="token">Token</option>
+                    <option value="cookie">Cookie</option>
+                </select>
+                <input type="file" name="files" multiple>
+                <button>Upload</button>
+            </form>
+        </div>
         `);
     });
 
+    // UPLOAD
     app.post("/upload", upload.array("files", 10), async (req, res) => {
         const db = getDB();
 
@@ -54,7 +59,7 @@ async function startServer() {
     });
 
     app.listen(PORT, () => {
-        console.log("🌐 Dashboard läuft");
+        console.log("🌐 Dashboard läuft auf Port " + PORT);
     });
 }
 
