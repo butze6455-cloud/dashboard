@@ -1,11 +1,7 @@
+require("dotenv").config();
+
 const { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes } = require("discord.js");
 const { connectDB, getDB } = require("./database");
-
-const TOKEN = "MTQ5MDM5MzQ5MzY0MDgzOTMzOA.GAvKpQ.3-YECoynqtuSx2CcC9sjI5yy1dHLl0crpL_ZPI";
-
-
-const CLIENT_ID = "1490393493640839338";
-const GUILD_ID = "1490124748485820629";
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -14,7 +10,7 @@ client.once("ready", async () => {
     console.log("🤖 Bot online");
 });
 
-// COMMANDS REGISTRIEREN
+// COMMANDS
 const commands = [
     new SlashCommandBuilder()
         .setName("gen")
@@ -29,11 +25,11 @@ const commands = [
                 ))
 ].map(cmd => cmd.toJSON());
 
-const rest = new REST({ version: "10" }).setToken(TOKEN);
+const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
     await rest.put(
-        Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+        Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
         { body: commands }
     );
 })();
@@ -60,4 +56,4 @@ client.on("interactionCreate", async (interaction) => {
     }
 });
 
-client.login(TOKEN);
+client.login(process.env.TOKEN);
