@@ -3,59 +3,65 @@ const multer = require("multer");
 const fs = require("fs");
 const { connectDB, getDB } = require("./database");
 
-// 👉 HIER DEIN MONGO LINK
-const MONGO_URI = "mongodb+srv://butze6455_db_user:OvthYec6q5ZsUzZo@cluster0.3abvojv.mongodb.net/?appName=Cluster0";
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.urlencoded({ extended: true }));
 const upload = multer({ dest: "uploads/" });
 
-// DB CONNECT
-connectDB();
+// 🚀 WICHTIG: Server erst starten NACH DB
+async function startServer() {
+    await connectDB();
 
-// HOME
-app.get("/", async (req, res) => {
-    const db = getDB();
+    // ===== HOME =====
+    app.get("/", async (req, res) => {
+        const db = getDB();
 
-    const tokens = await db.collection("stock").countDocuments({ type: "token" });
-    const cookies = await db.collection("stock").countDocuments({ type: "cookie" });
+        const tokenCount = await db.collection("stock").countDocuments({ type: "token" });
+        const cookieCount = await db.collection("stock").countDocuments({ type: "cookie" });
 
-    res.send(`
-    <h1>VaultAlts Dashboard</h1>
-    <p>Token: ${tokens}</p>
-    <p>Cookie: ${cookies}</p>
+        res.send(`
+        <h1>🖤 VaultAlts Dashboard</h1>
 
-    <form method="POST" action="/upload" enctype="multipart/form-data">
-        <select name="type">
-            <option value="token">Token</option>
-            <option value="cookie">Cookie</option>
-        </select>
-        <input type="file" name="files" multiple>
-        <button>Upload</button>
-    </form>
-    `);
-});
+        <h2>📊 Stock</h2>
+        <p>Token: ${tokenCount}</p>
+        <p>Cookie: ${cookieCount}</p>
 
-// UPLOAD
-app.post("/upload", upload.array("files", 10), async (req, res) => {
-    const db = getDB();
+        <h2>📥 Upload</h2>
+        <form method="POST" action="/upload" enctype="multipart/form-data">
+            <select name="type">
+                <option value="token">Token</option>
+                <option value="cookie">Cookie</option>
+            </select>
+            <input type="file" name="files" multiple>
+            <button>Upload</button>
+        </form>
+        `);
+    });
 
-    for (const file of req.files) {
-        const content = fs.readFileSync(file.path, "utf-8");
+    // ===== UPLOAD =====
+    app.post("/upload", upload.array("files", 10), async (req, res) => {
+        const db = getDB();
 
-        await db.collection("stock").insertOne({
-            type: req.body.type,
-            value: content
-        });
+        for (const file of req.files) {
+            const content = fs.readFileSync(file.path, "utf-8");
 
-        fs.unlinkSync(file.path);
-    }
+            await db.collection("stock").insertOne({
+                type: req.body.type,
+                value: content
+            });
 
-    res.redirect("/");
-});
+            fs.unlinkSync(file.path);
+        }
 
-app.listen(PORT, () => {
-    console.log("🌐 Dashboard läuft");
-});
+        res.redirect("/");
+    });
+
+    // ===== START =====
+    app.listen(PORT, () => {
+        console.log("🌐 Dashboard läuft auf Port " + PORT);
+    });
+}
+
+// STARTEN
+startServer();
