@@ -1,15 +1,20 @@
 const { MongoClient } = require("mongodb");
 
-// 👉 HIER DEIN MONGO LINK EINTRAGEN
-const MONGO_URI = "DEIN_MONGO_LINK";
+// 👉 HIER DEIN MONGO LINK REIN (WICHTIG: MIT "")
+const MONGO_URI = 
 
-const client = new MongoClient(mongodb+srv://butze6455_db_user:OvthYec6q5ZsUzZo@cluster0.3abvojv.mongodb.net/?appName=Cluster0);
+const client = new MongoClient(MONGO_URI); "mongodb+srv://butze6455_db_user:OvthYec6q5ZsUzZo@cluster0.3abvojv.mongodb.net/?appName=Cluster0";
+
 let db;
 
 async function connectDB() {
-    await client.connect();
-    db = client.db("vaultalts");
-    console.log("✅ MongoDB verbunden");
+    try {
+        await client.connect();
+        db = client.db("vaultalts");
+        console.log("✅ MongoDB verbunden");
+    } catch (err) {
+        console.error("❌ Mongo Fehler:", err);
+    }
 }
 
 function getDB() {
