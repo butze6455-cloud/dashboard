@@ -4,7 +4,7 @@ const fs = require("fs");
 const { connectDB, getDB } = require("./database");
 
 // 👉 HIER DEIN MONGO LINK
-const MONGO_URI = "mongodb+srv://butze6455_db_user:<OvthYec6q5ZsUzZo>@cluster0.3abvojv.mongodb.net/?appName=Cluster0";
+const MONGO_URI = "mongodb+srv://butze6455_db_user:OvthYec6q5ZsUzZo@cluster0.3abvojv.mongodb.net/?appName=Cluster0";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
