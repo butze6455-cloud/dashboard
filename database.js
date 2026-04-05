@@ -1,6 +1,6 @@
-require("dotenv").config();
 const { MongoClient } = require("mongodb");
 
+// 👉 Render ENV Variable wird benutzt
 const client = new MongoClient(process.env.MONGO_URI);
 
 let db;
