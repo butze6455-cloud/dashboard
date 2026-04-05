@@ -1,9 +1,7 @@
+require("dotenv").config();
 const { MongoClient } = require("mongodb");
 
-// 👉 HIER DEIN MONGO LINK REIN (WICHTIG: MIT "")
-const MONGO_URI = "mongodb+srv://butze6455_db_user:OvthYec6q5ZsUzZo@cluster0.3abvojv.mongodb.net/?appName=Cluster0";
-
-const client = new MongoClient(MONGO_URI);
+const client = new MongoClient(process.env.MONGO_URI);
 
 let db;
 
