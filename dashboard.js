@@ -71,5 +71,4 @@ app.get("/keys", async (req, res) => {
     ));
 });
 
-// ❗ KEIN app.listen HIER
 module.exports = app;
