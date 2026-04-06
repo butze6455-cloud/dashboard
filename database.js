@@ -16,7 +16,10 @@ async function connectDB() {
 }
 
 function getDB() {
-    if (!db) throw new Error("DB nicht verbunden!");
+    if (!db) {
+        console.error("❌ DB nicht verbunden!");
+        return null;
+    }
     return db;
 }
 
