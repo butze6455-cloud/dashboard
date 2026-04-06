@@ -1,14 +1,18 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, REST, Routes } = require("discord.js");
+process.on("uncaughtException", err => console.error("❌ Error:", err));
+process.on("unhandledRejection", err => console.error("❌ Promise:", err));
+
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require("discord.js");
 const { connectDB, getDB } = require("./database");
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
+// READY
 client.once("ready", async () => {
     await connectDB();
     console.log("🤖 Bot online");
 });
 
-// COMMANDS
+// COMMAND
 const commands = [
     new SlashCommandBuilder()
         .setName("gen")
@@ -23,7 +27,7 @@ const commands = [
                 ))
 ].map(cmd => cmd.toJSON());
 
-// REGISTER COMMANDS
+// REGISTER
 const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
 
 (async () => {
@@ -32,9 +36,9 @@ const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
             Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
             { body: commands }
         );
-        console.log("✅ Commands geladen");
+        console.log("✅ Commands registriert");
     } catch (err) {
-        console.error(err);
+        console.error("❌ Command Fehler:", err);
     }
 })();
 
@@ -43,6 +47,7 @@ client.on("interactionCreate", async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     const db = getDB();
+    if (!db) return interaction.reply({ content: "DB Fehler", ephemeral: true });
 
     if (interaction.commandName === "gen") {
         const type = interaction.options.getString("type");
