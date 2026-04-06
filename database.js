@@ -2,25 +2,17 @@ const { MongoClient } = require("mongodb");
 
 const uri = process.env.MONGO_URI;
 
+const client = new MongoClient(uri);
+
 let db;
 
 async function connectDB() {
-    try {
-        const client = new MongoClient(uri);
+    if (!db) {
         await client.connect();
         db = client.db("vaultalts");
         console.log("✅ MongoDB verbunden");
-    } catch (err) {
-        console.error("❌ Mongo Fehler:", err);
-    }
-}
-
-function getDB() {
-    if (!db) {
-        console.error("❌ DB nicht verbunden!");
-        return null;
     }
     return db;
 }
 
-module.exports = { connectDB, getDB };
+module.exports = { connectDB };
