@@ -8,7 +8,6 @@ const upload = multer();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🎨 UI
 function page(content) {
     return `
     <html>
@@ -18,18 +17,17 @@ function page(content) {
             body { background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; }
             .box { background:#1a1a1a; padding:20px; margin:20px auto; width:80%; border-radius:10px; }
             button { padding:10px; margin:5px; background:#333; color:white; border:none; border-radius:5px; }
-            input, select { padding:10px; margin:5px; }
         </style>
     </head>
     <body>
-        <h1>🚀 VaultAlts Dashboard</h1>
+        <h1>🚀 Dashboard</h1>
         ${content}
     </body>
     </html>
     `;
 }
 
-// 📊 HOME
+// HOME
 app.get("/", async (req, res) => {
     const db = await connectDB();
 
@@ -39,14 +37,12 @@ app.get("/", async (req, res) => {
 
     res.send(page(`
         <div class="box">
-            <h2>Stats</h2>
             Keys: ${keys}<br>
             Tokens: ${tokens}<br>
             Cookies: ${cookies}
         </div>
 
         <div class="box">
-            <h2>Upload</h2>
             <form action="/upload" method="post" enctype="multipart/form-data">
                 <select name="type">
                     <option value="cookies">Cookies</option>
@@ -57,34 +53,25 @@ app.get("/", async (req, res) => {
             </form>
         </div>
 
-        <div class="box">
-            <a href="/keys"><button>Keys anzeigen</button></a>
-        </div>
+        <a href="/keys"><button>Keys</button></a>
     `));
 });
 
-// 📦 UPLOAD
+// UPLOAD
 app.post("/upload", upload.single("file"), async (req, res) => {
     const db = await connectDB();
 
-    if (!req.file) return res.send(page("❌ Keine Datei"));
-
     const text = req.file.buffer.toString();
-    const lines = text.split("\n").filter(l => l.trim() !== "");
+    const lines = text.split("\n").filter(x => x.trim() !== "");
 
     await db.collection("stock").insertMany(
-        lines.map(line => ({
-            type: req.body.type,
-            data: line,
-            used: false,
-            date: new Date()
-        }))
+        lines.map(l => ({ type: req.body.type, data: l, used: false }))
     );
 
     res.redirect("/");
 });
 
-// 🔑 KEYS
+// KEYS
 app.get("/keys", async (req, res) => {
     const db = await connectDB();
     const keys = await db.collection("keys").find().toArray();
@@ -104,18 +91,12 @@ app.get("/keys", async (req, res) => {
     ));
 });
 
-// 🗑 DELETE
+// DELETE
 app.post("/delete", async (req, res) => {
     const db = await connectDB();
     await db.collection("keys").deleteOne({ key: req.body.key });
     res.redirect("/keys");
 });
 
-// 🚀 START (FIXED)
-const PORT = process.env.PORT;
-
-if (PORT) {
-    app.listen(PORT, () => {
-        console.log("🌐 Dashboard läuft auf Port " + PORT);
-    });
-}
+// ❗ KEIN app.listen HIER
+module.exports = app;
