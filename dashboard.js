@@ -11,17 +11,9 @@ app.use(express.json());
 function page(content) {
     return `
     <html>
-    <head>
-        <title>Dashboard</title>
-        <style>
-            body { background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; }
-            .box { background:#1a1a1a; padding:20px; margin:20px auto; width:80%; border-radius:10px; }
-            button { padding:10px; margin:5px; background:#333; color:white; border:none; border-radius:5px; }
-        </style>
-    </head>
-    <body>
-        <h1>🚀 Dashboard</h1>
-        ${content}
+    <body style="background:#111;color:white;text-align:center;font-family:sans-serif">
+    <h1>🚀 Dashboard</h1>
+    ${content}
     </body>
     </html>
     `;
@@ -36,24 +28,20 @@ app.get("/", async (req, res) => {
     const cookies = await db.collection("stock").countDocuments({ type: "cookies" });
 
     res.send(page(`
-        <div class="box">
-            Keys: ${keys}<br>
-            Tokens: ${tokens}<br>
-            Cookies: ${cookies}
-        </div>
+        Keys: ${keys}<br>
+        Tokens: ${tokens}<br>
+        Cookies: ${cookies}<br><br>
 
-        <div class="box">
-            <form action="/upload" method="post" enctype="multipart/form-data">
-                <select name="type">
-                    <option value="cookies">Cookies</option>
-                    <option value="tokens">Tokens</option>
-                </select><br>
-                <input type="file" name="file" required><br>
-                <button>Upload</button>
-            </form>
-        </div>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <select name="type">
+                <option value="cookies">Cookies</option>
+                <option value="tokens">Tokens</option>
+            </select>
+            <input type="file" name="file">
+            <button>Upload</button>
+        </form>
 
-        <a href="/keys"><button>Keys</button></a>
+        <br><a href="/keys">Keys anzeigen</a>
     `));
 });
 
@@ -77,25 +65,10 @@ app.get("/keys", async (req, res) => {
     const keys = await db.collection("keys").find().toArray();
 
     res.send(page(
-        keys.map(k => `
-            <div class="box">
-                ${k.key}<br>
-                ${k.plan}<br>
-                User: ${k.user || "None"}
-                <form action="/delete" method="post">
-                    <input type="hidden" name="key" value="${k.key}">
-                    <button>Delete</button>
-                </form>
-            </div>
-        `).join("") + `<a href="/"><button>Back</button></a>`
+        keys.map(k =>
+            `${k.key} | ${k.plan} | ${k.user || "None"}`
+        ).join("<br>") + `<br><br><a href="/">Back</a>`
     ));
-});
-
-// DELETE
-app.post("/delete", async (req, res) => {
-    const db = await connectDB();
-    await db.collection("keys").deleteOne({ key: req.body.key });
-    res.redirect("/keys");
 });
 
 // ❗ KEIN app.listen HIER
