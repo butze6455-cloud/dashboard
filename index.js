@@ -22,7 +22,7 @@ function getExpiry(plan) {
     const now = Date.now();
     if (plan === "week") return now + 7 * 24 * 60 * 60 * 1000;
     if (plan === "month") return now + 30 * 24 * 60 * 60 * 1000;
-    if (plan === "lifetime") return null;
+    return null;
 }
 
 // 🔐 Key Check
@@ -83,10 +83,14 @@ const commands = [
         )
 ];
 
+// 🔥 FIX: toJSON()
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+    await rest.put(
+        Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+        { body: commands.map(c => c.toJSON()) }
+    );
 })();
 
 client.on("ready", async () => {
@@ -119,7 +123,6 @@ client.on("interactionCreate", async interaction => {
         });
 
         await sendLog(`🔑 Key erstellt: ${key} | ${plan}`);
-
         return interaction.reply(`🔑 ${key}`);
     }
 
@@ -137,7 +140,6 @@ client.on("interactionCreate", async interaction => {
         );
 
         await sendLog(`✅ Redeemed: ${keyInput}`);
-
         return interaction.reply("✅ Done");
     }
 
@@ -156,7 +158,6 @@ client.on("interactionCreate", async interaction => {
         await db.collection("keys").deleteOne({ key });
 
         await sendLog(`🗑 Deleted: ${key}`);
-
         return interaction.reply("Deleted");
     }
 
@@ -185,7 +186,6 @@ client.on("interactionCreate", async interaction => {
         );
 
         await sendLog(`📦 ${lines.length} ${type}`);
-
         return interaction.reply(`✅ ${lines.length} added`);
     }
 
@@ -196,21 +196,22 @@ client.on("interactionCreate", async interaction => {
         const valid = await hasValidKey(db, interaction.user.id);
         if (!valid) return interaction.reply("❌ Kein Key");
 
-        const item = await db.collection("stock").findOneAndUpdate(
-            { type, used: false },
+        const item = await db.collection("stock").findOne({ type, used: false });
+
+        if (!item) return interaction.reply("❌ Empty");
+
+        await db.collection("stock").updateOne(
+            { _id: item._id },
             { $set: { used: true } }
         );
 
-        if (!item.value) return interaction.reply("❌ Empty");
-
-        const buffer = Buffer.from(item.value.data);
+        const buffer = Buffer.from(item.data);
 
         await interaction.user.send({
             files: [{ attachment: buffer, name: `${type}.txt` }]
         });
 
         await sendLog(`📥 Gen ${type}`);
-
         return interaction.reply({ content: "✅ DM!", ephemeral: true });
     }
 });
