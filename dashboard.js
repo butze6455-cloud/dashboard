@@ -8,117 +8,164 @@ const upload = multer();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// 🎨 DARK UI
+/* 🎨 DARK UI */
 function page(content) {
     return `
     <html>
     <head>
-    <title>VaultAlts Dashboard</title>
-    <style>
-    body { background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; }
-    .box { background:#1a1a1a; padding:20px; margin:20px auto; width:80%; border-radius:10px; }
-    button { padding:10px; margin:5px; border:none; border-radius:5px; background:#333; color:white; cursor:pointer; }
-    button:hover { background:#555; }
-    input { padding:10px; margin:5px; border-radius:5px; border:none; }
-    </style>
+        <title>VaultAlts Dashboard</title>
+        <style>
+            body {
+                background: #0d0d0d;
+                color: white;
+                font-family: Arial;
+                text-align: center;
+            }
+            .box {
+                background: #1a1a1a;
+                padding: 20px;
+                margin: 20px auto;
+                width: 80%;
+                border-radius: 10px;
+            }
+            button {
+                padding: 10px;
+                margin: 5px;
+                border: none;
+                border-radius: 5px;
+                background: #333;
+                color: white;
+                cursor: pointer;
+            }
+            button:hover {
+                background: #555;
+            }
+            input, select {
+                padding: 10px;
+                margin: 5px;
+                border-radius: 5px;
+                border: none;
+            }
+        </style>
     </head>
     <body>
-    <h1>🚀 VaultAlts Admin Panel</h1>
-    ${content}
+        <h1>🚀 VaultAlts Dashboard</h1>
+        ${content}
     </body>
     </html>
     `;
 }
 
-// 📊 HOME
+/* 📊 HOME */
 app.get("/", async (req, res) => {
-    const db = await connectDB();
+    try {
+        const db = await connectDB();
 
-    const keys = await db.collection("keys").countDocuments();
-    const tokens = await db.collection("stock").countDocuments({ type: "tokens" });
-    const cookies = await db.collection("stock").countDocuments({ type: "cookies" });
+        const keys = await db.collection("keys").countDocuments();
+        const tokens = await db.collection("stock").countDocuments({ type: "tokens" });
+        const cookies = await db.collection("stock").countDocuments({ type: "cookies" });
 
-    res.send(page(`
-    <div class="box">
-        <h2>📊 Stats</h2>
-        Keys: ${keys}<br>
-        Tokens: ${tokens}<br>
-        Cookies: ${cookies}
-    </div>
+        res.send(page(`
+            <div class="box">
+                <h2>📊 Stats</h2>
+                Keys: ${keys}<br>
+                Tokens: ${tokens}<br>
+                Cookies: ${cookies}
+            </div>
 
-    <div class="box">
-        <h2>📦 Upload Stock</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <select name="type">
-                <option value="cookies">Cookies</option>
-                <option value="tokens">Tokens</option>
-            </select><br>
-            <input type="file" name="file" required><br>
-            <button type="submit">Upload</button>
-        </form>
-    </div>
+            <div class="box">
+                <h2>📦 Upload Stock</h2>
+                <form action="/upload" method="post" enctype="multipart/form-data">
+                    <select name="type">
+                        <option value="cookies">Cookies</option>
+                        <option value="tokens">Tokens</option>
+                    </select><br>
+                    <input type="file" name="file" required><br>
+                    <button type="submit">Upload</button>
+                </form>
+            </div>
 
-    <div class="box">
-        <h2>🔑 Keys</h2>
-        <a href="/keys"><button>Keys anzeigen</button></a>
-    </div>
-    `));
+            <div class="box">
+                <h2>🔑 Keys</h2>
+                <a href="/keys"><button>Keys anzeigen</button></a>
+            </div>
+        `));
+    } catch (err) {
+        res.send("❌ Fehler: " + err.message);
+    }
 });
 
-// 📦 UPLOAD
+/* 📦 UPLOAD */
 app.post("/upload", upload.single("file"), async (req, res) => {
-    const db = await connectDB();
+    try {
+        const db = await connectDB();
 
-    const type = req.body.type;
-    const text = req.file.buffer.toString();
+        if (!req.file) {
+            return res.send(page("❌ Keine Datei!"));
+        }
 
-    const lines = text.split("\n").filter(l => l.trim() !== "");
+        const text = req.file.buffer.toString();
+        const lines = text.split("\n").filter(l => l.trim() !== "");
 
-    const docs = lines.map(line => ({
-        type,
-        data: line,
-        used: false,
-        date: new Date()
-    }));
+        await db.collection("stock").insertMany(
+            lines.map(line => ({
+                type: req.body.type,
+                data: line,
+                used: false,
+                date: new Date()
+            }))
+        );
 
-    await db.collection("stock").insertMany(docs);
-
-    res.send(page(`<h2>✅ ${lines.length} ${type} hochgeladen</h2><a href="/"><button>Zurück</button></a>`));
+        res.send(page(`✅ ${lines.length} ${req.body.type} hochgeladen<br><a href="/"><button>Zurück</button></a>`));
+    } catch (err) {
+        res.send("❌ Fehler: " + err.message);
+    }
 });
 
-// 🔑 KEYS LIST
+/* 🔑 KEYS */
 app.get("/keys", async (req, res) => {
-    const db = await connectDB();
+    try {
+        const db = await connectDB();
+        const keys = await db.collection("keys").find().toArray();
 
-    const keys = await db.collection("keys").find().toArray();
+        let html = keys.map(k => `
+            <div class="box">
+                🔑 ${k.key}<br>
+                Plan: ${k.plan}<br>
+                User: ${k.user || "None"}<br>
+                <form action="/deleteKey" method="post">
+                    <input type="hidden" name="key" value="${k.key}">
+                    <button>🗑 Delete</button>
+                </form>
+            </div>
+        `).join("");
 
-    let html = keys.map(k => `
-        <div class="box">
-            🔑 ${k.key}<br>
-            Plan: ${k.plan}<br>
-            User: ${k.user || "None"}<br>
-            <form action="/deleteKey" method="post">
-                <input type="hidden" name="key" value="${k.key}">
-                <button>🗑 Delete</button>
-            </form>
-        </div>
-    `).join("");
-
-    res.send(page(html + `<a href="/"><button>Zurück</button></a>`));
+        res.send(page(html + `<a href="/"><button>Zurück</button></a>`));
+    } catch (err) {
+        res.send("❌ Fehler: " + err.message);
+    }
 });
 
-// 🗑 DELETE KEY
+/* 🗑 DELETE KEY */
 app.post("/deleteKey", async (req, res) => {
-    const db = await connectDB();
+    try {
+        const db = await connectDB();
+        await db.collection("keys").deleteOne({ key: req.body.key });
 
-    await db.collection("keys").deleteOne({ key: req.body.key });
-
-    res.redirect("/keys");
+        res.redirect("/keys");
+    } catch (err) {
+        res.send("❌ Fehler: " + err.message);
+    }
 });
 
-// 🚀 START SERVER
-const PORT = process.env.PORT || 3000;
+/* 🚀 SERVER START (FIXED) */
+const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => {
-    console.log("🌐 Dashboard läuft auf Port " + PORT);
-});
+// 🔥 verhindert doppelt starten
+if (!global.dashboardStarted) {
+    app.listen(PORT, () => {
+        console.log("🌐 Dashboard läuft auf Port " + PORT);
+    });
+
+    global.dashboardStarted = true;
+}
