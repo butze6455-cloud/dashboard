@@ -8,67 +8,49 @@ const upload = multer();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-function page(content) {
-    return `
-    <html>
-    <body style="background:#111;color:white;text-align:center;font-family:sans-serif">
-    <h1>🚀 Dashboard</h1>
-    ${content}
-    </body>
-    </html>
-    `;
-}
-
-// HOME
 app.get("/", async (req, res) => {
     const db = await connectDB();
 
-    const keys = await db.collection("keys").countDocuments();
-    const tokens = await db.collection("stock").countDocuments({ type: "tokens" });
-    const cookies = await db.collection("stock").countDocuments({ type: "cookies" });
+    const tokens = await db.collection("stock").countDocuments({ type: "tokens", used: false });
+    const cookies = await db.collection("stock").countDocuments({ type: "cookies", used: false });
 
-    res.send(page(`
-        Keys: ${keys}<br>
-        Tokens: ${tokens}<br>
-        Cookies: ${cookies}<br><br>
+    res.send(`
+    <html>
+    <body style="background:#0f172a;color:white;text-align:center;font-family:sans-serif">
+    <h1>🚀 Dashboard</h1>
 
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <select name="type">
-                <option value="cookies">Cookies</option>
-                <option value="tokens">Tokens</option>
-            </select>
-            <input type="file" name="file">
-            <button>Upload</button>
-        </form>
+    <h2>📊 Live Stock</h2>
+    🍪 Cookies: ${cookies}<br>
+    🔑 Tokens: ${tokens}<br>
 
-        <br><a href="/keys">Keys anzeigen</a>
-    `));
+    <br><br>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <select name="type">
+            <option value="cookies">Cookies</option>
+            <option value="tokens">Tokens</option>
+        </select>
+        <input type="file" name="file">
+        <button>Upload</button>
+    </form>
+
+    </body>
+    </html>
+    `);
 });
 
-// UPLOAD
 app.post("/upload", upload.single("file"), async (req, res) => {
     const db = await connectDB();
 
     const text = req.file.buffer.toString();
-    const lines = text.split("\n").filter(x => x.trim() !== "");
 
-    await db.collection("stock").insertMany(
-        lines.map(l => ({ type: req.body.type, data: l, used: false }))
-    );
+    await db.collection("stock").insertOne({
+        type: req.body.type,
+        data: text,
+        used: false
+    });
 
     res.redirect("/");
-});
-
-// KEYS
-app.get("/keys", async (req, res) => {
-    const db = await connectDB();
-    const keys = await db.collection("keys").find().toArray();
-
-    res.send(page(
-        keys.map(k =>
-            `${k.key} | ${k.plan} | ${k.user || "None"}`
-        ).join("<br>") + `<br><br><a href="/">Back</a>`
-    ));
 });
 
 module.exports = app;
