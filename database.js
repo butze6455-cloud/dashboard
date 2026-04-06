@@ -1,12 +1,12 @@
 const { MongoClient } = require("mongodb");
 
-// 👉 Render ENV Variable wird benutzt
-const client = new MongoClient(process.env.MONGO_URI);
+const uri = process.env.MONGO_URI;
 
 let db;
 
 async function connectDB() {
     try {
+        const client = new MongoClient(uri);
         await client.connect();
         db = client.db("vaultalts");
         console.log("✅ MongoDB verbunden");
@@ -16,6 +16,7 @@ async function connectDB() {
 }
 
 function getDB() {
+    if (!db) throw new Error("DB nicht verbunden!");
     return db;
 }
 
