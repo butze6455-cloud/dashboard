@@ -1,6 +1,9 @@
 require("./index");
 
-// 🌐 Dashboard nur starten wenn Render PORT existiert
-if (process.env.PORT) {
-    require("./dashboard");
-}
+const app = require("./dashboard");
+
+const PORT = process.env.PORT || 10000;
+
+app.listen(PORT, () => {
+    console.log("🌐 Dashboard läuft auf Port " + PORT);
+});
