@@ -6,9 +6,17 @@ const app = express();
 const upload = multer();
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-function page(c) {
-    return `<body style="background:#111;color:white;text-align:center;font-family:sans-serif">${c}</body>`;
+function page(content) {
+    return `
+    <html>
+    <body style="background:#111;color:white;text-align:center;font-family:sans-serif">
+    <h1>🚀 Dashboard</h1>
+    ${content}
+    </body>
+    </html>
+    `;
 }
 
 app.get("/", async (req, res) => {
@@ -19,18 +27,18 @@ app.get("/", async (req, res) => {
     const cookies = await db.collection("stock").countDocuments({ type: "cookies" });
 
     res.send(page(`
-    <h1>Dashboard</h1>
-    Keys: ${keys}<br>Tokens: ${tokens}<br>Cookies: ${cookies}<br><br>
+        Keys: ${keys}<br>
+        Tokens: ${tokens}<br>
+        Cookies: ${cookies}<br><br>
 
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <select name="type">
-            <option value="cookies">Cookies</option>
-            <option value="tokens">Tokens</option>
-        </select>
-        <input type="file" name="file">
-        <button>Upload</button>
-    </form>
-    <br><a href="/keys">Keys</a>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <select name="type">
+                <option value="cookies">Cookies</option>
+                <option value="tokens">Tokens</option>
+            </select>
+            <input type="file" name="file">
+            <button>Upload</button>
+        </form>
     `));
 });
 
@@ -38,7 +46,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const db = await connectDB();
 
     const text = req.file.buffer.toString();
-    const lines = text.split("\n").filter(x => x);
+    const lines = text.split("\n").filter(x => x.trim() !== "");
 
     await db.collection("stock").insertMany(
         lines.map(l => ({ type: req.body.type, data: l, used: false }))
@@ -47,15 +55,4 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     res.redirect("/");
 });
 
-app.get("/keys", async (req, res) => {
-    const db = await connectDB();
-    const keys = await db.collection("keys").find().toArray();
-
-    res.send(page(keys.map(k =>
-        `${k.key} | ${k.plan} | ${k.user || "None"}`
-    ).join("<br>")));
-});
-
-app.listen(process.env.PORT || 3000, () => {
-    console.log("🌐 Dashboard läuft");
-});
+module.exports = app;
