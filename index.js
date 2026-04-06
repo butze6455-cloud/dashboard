@@ -74,6 +74,14 @@ const commands = [
         )
         .addAttachmentOption(opt => opt.setName("file").setDescription("TXT Datei").setRequired(true)),
 
+    new SlashCommandBuilder().setName("deletestock").setDescription("Delete stock")
+        .addStringOption(opt => opt.setName("type").setDescription("Type").setRequired(true)
+            .addChoices(
+                { name: "cookies", value: "cookies" },
+                { name: "tokens", value: "tokens" }
+            )
+        ),
+
     new SlashCommandBuilder().setName("gen").setDescription("Generate stock")
         .addStringOption(opt => opt.setName("type").setDescription("Type").setRequired(true)
             .addChoices(
@@ -83,7 +91,6 @@ const commands = [
         )
 ];
 
-// 🔥 FIX: toJSON()
 const rest = new REST({ version: "10" }).setToken(TOKEN);
 
 (async () => {
@@ -103,26 +110,15 @@ client.on("interactionCreate", async interaction => {
 
     const db = await connectDB();
 
-    // ⏱ Cooldown
-    if (interaction.commandName === "gen") {
-        const last = cooldowns.get(interaction.user.id);
-        if (last && Date.now() - last < 60000) {
-            return interaction.reply({ content: "⏱ Warte 1 Minute!", ephemeral: true });
-        }
-        cooldowns.set(interaction.user.id, Date.now());
-    }
-
-    // 🔑 CREATE
+    // 🔑 CREATE KEY
     if (interaction.commandName === "createkey") {
         const plan = interaction.options.getString("plan");
         const key = generateKey();
         const expires = getExpiry(plan);
 
-        await db.collection("keys").insertOne({
-            key, plan, expires, used: false, user: null
-        });
+        await db.collection("keys").insertOne({ key, plan, expires, used: false, user: null });
 
-        await sendLog(`🔑 Key erstellt: ${key} | ${plan}`);
+        await sendLog(`🔑 Key erstellt: ${key}`);
         return interaction.reply(`🔑 ${key}`);
     }
 
@@ -131,8 +127,7 @@ client.on("interactionCreate", async interaction => {
         const keyInput = interaction.options.getString("key");
         const key = await db.collection("keys").findOne({ key: keyInput });
 
-        if (!key) return interaction.reply("❌ Invalid");
-        if (key.used) return interaction.reply("❌ Used");
+        if (!key || key.used) return interaction.reply("❌ Invalid");
 
         await db.collection("keys").updateOne(
             { key: keyInput },
@@ -143,35 +138,7 @@ client.on("interactionCreate", async interaction => {
         return interaction.reply("✅ Done");
     }
 
-    // 📋 LIST
-    if (interaction.commandName === "keylist") {
-        const keys = await db.collection("keys").find().toArray();
-
-        return interaction.reply("```" +
-            keys.map(k => `${k.key} | ${k.plan} | ${k.user || "None"}`).join("\n")
-            + "```");
-    }
-
-    // 🗑 DELETE
-    if (interaction.commandName === "keydelete") {
-        const key = interaction.options.getString("key");
-        await db.collection("keys").deleteOne({ key });
-
-        await sendLog(`🗑 Deleted: ${key}`);
-        return interaction.reply("Deleted");
-    }
-
-    // ℹ️ INFO
-    if (interaction.commandName === "keyinfo") {
-        const keyInput = interaction.options.getString("key");
-        const key = await db.collection("keys").findOne({ key: keyInput });
-
-        if (!key) return interaction.reply("❌ Not found");
-
-        return interaction.reply(`Plan: ${key.plan}\nUser: ${key.user}`);
-    }
-
-    // 📦 ADD STOCK
+    // 📦 ADD STOCK (TXT bleibt gleich)
     if (interaction.commandName === "addstock") {
         const type = interaction.options.getString("type");
         const file = interaction.options.getAttachment("file");
@@ -179,17 +146,27 @@ client.on("interactionCreate", async interaction => {
         const res = await fetch(file.url);
         const text = await res.text();
 
-        const lines = text.split("\n").filter(x => x);
+        await db.collection("stock").insertOne({
+            type,
+            data: text,
+            used: false
+        });
 
-        await db.collection("stock").insertMany(
-            lines.map(l => ({ type, data: l, used: false }))
-        );
-
-        await sendLog(`📦 ${lines.length} ${type}`);
-        return interaction.reply(`✅ ${lines.length} added`);
+        await sendLog(`📦 ${type} hinzugefügt`);
+        return interaction.reply("✅ Hochgeladen");
     }
 
-    // 🔐 GEN
+    // 🗑 DELETE STOCK
+    if (interaction.commandName === "deletestock") {
+        const type = interaction.options.getString("type");
+
+        const result = await db.collection("stock").deleteMany({ type });
+
+        await sendLog(`🗑 ${result.deletedCount} ${type} gelöscht`);
+        return interaction.reply(`✅ ${result.deletedCount} gelöscht`);
+    }
+
+    // 🔐 GEN (TXT 1:1)
     if (interaction.commandName === "gen") {
         const type = interaction.options.getString("type");
 
@@ -205,13 +182,13 @@ client.on("interactionCreate", async interaction => {
             { $set: { used: true } }
         );
 
-        const buffer = Buffer.from(item.data);
+        const buffer = Buffer.from(item.data, "utf-8");
 
         await interaction.user.send({
             files: [{ attachment: buffer, name: `${type}.txt` }]
         });
 
-        await sendLog(`📥 Gen ${type}`);
+        await sendLog(`📥 ${type} gesendet`);
         return interaction.reply({ content: "✅ DM!", ephemeral: true });
     }
 });
