@@ -1,30 +1,46 @@
+// 🔒 SICHERE VERSION: Discord Bot + Express Server (Render-ready)
+
+// Debugging (zeigt Fehler im Render Log)
 process.on("uncaughtException", console.error);
 process.on("unhandledRejection", console.error);
 
-console.log("START...");
+console.log("🚀 Start...");
 
 // ===== IMPORTS =====
 require("dotenv").config();
 const express = require("express");
 const { Client, GatewayIntentBits } = require("discord.js");
 
-// ===== DEBUG TOKEN =====
-console.log("TOKEN:", process.env.DISCORD_TOKEN);
+// ===== TOKEN CHECK (SICHER) =====
+if (!process.env.DISCORD_TOKEN) {
+  console.error("❌ DISCORD_TOKEN fehlt!");
+} else {
+  console.log("✅ Token geladen");
+}
 
-// ===== EXPRESS =====
+// ===== EXPRESS SERVER =====
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => res.send("OK"));
-app.listen(PORT, () => console.log("Web läuft"));
+app.get("/", (req, res) => {
+  res.send("✅ Dashboard + Bot läuft sicher");
+});
 
-// ===== BOT =====
+app.listen(PORT, () => {
+  console.log("🌐 Webserver läuft auf Port " + PORT);
+});
+
+// ===== DISCORD BOT =====
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
 
 client.once("ready", () => {
-  console.log("Bot online");
+  console.log("🤖 Bot ist online als " + client.user.tag);
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.on("error", console.error);
+
+// Login (nur wenn Token vorhanden)
+if (process.env.DISCORD_TOKEN) {
+  clien
