@@ -1,17 +1,15 @@
 // 🔒 SICHERE VERSION: Discord Bot + Express Server (Render-ready)
 
-// Debugging (zeigt Fehler im Render Log)
 process.on("uncaughtException", console.error);
 process.on("unhandledRejection", console.error);
 
 console.log("🚀 Start...");
 
-// ===== IMPORTS =====
 require("dotenv").config();
 const express = require("express");
 const { Client, GatewayIntentBits } = require("discord.js");
 
-// ===== TOKEN CHECK (SICHER) =====
+// ===== TOKEN CHECK =====
 if (!process.env.DISCORD_TOKEN) {
   console.error("❌ DISCORD_TOKEN fehlt!");
 } else {
@@ -41,6 +39,7 @@ client.once("ready", () => {
 
 client.on("error", console.error);
 
-// Login (nur wenn Token vorhanden)
+// ===== LOGIN =====
 if (process.env.DISCORD_TOKEN) {
-  clien
+  client.login(process.env.DISCORD_TOKEN);
+}
